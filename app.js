@@ -16,7 +16,7 @@ const grid=document.querySelector("#productsGrid");
 function render(){
  const q=document.querySelector("#search").value.trim();
  const list=products.filter(p=>(currentCat==="الكل"||p.cat===currentCat)&&(!q||p.name.includes(q)||p.desc.includes(q)));
- grid.innerHTML=list.length?list.map(p=>`<article class="product"><div class="pic">${p.icon}</div><div class="info"><h3>${p.name}</h3><div class="desc">${p.desc}</div><div class="meta"><span class="price">${p.price} ر.س</span><button class="add" onclick="add(${p.id})">+ أضف للسلة</button></div></div></article>`).join(""):`<div class="empty">ما لقينا منتج بهذا البحث.</div>`;
+ grid.innerHTML=list.length?list.map(p=>`<article class="product"><div class="pic">${p.icon}</div><div class="info"><h3>${p.name}</h3><div class="desc">${p.desc}</div><div class="meta"><span class="price">${p.price} ر.س</span><button class="add" onclick="add(${p.id},this)")">+ أضف للسلة</button></div class="add-message"></div>/div></article>`).join(""):`<div class="empty">ما لقينا منتج بهذا البحث.</div>`;
 }
 function add(id,btn){
   cart.push(id);
