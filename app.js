@@ -18,7 +18,14 @@ function render(){
  const list=products.filter(p=>(currentCat==="الكل"||p.cat===currentCat)&&(!q||p.name.includes(q)||p.desc.includes(q)));
  grid.innerHTML=list.length?list.map(p=>`<article class="product"><div class="pic">${p.icon}</div><div class="info"><h3>${p.name}</h3><div class="desc">${p.desc}</div><div class="meta"><span class="price">${p.price} ر.س</span><button class="add" onclick="add(${p.id})">+ أضف للسلة</button></div></div></article>`).join(""):`<div class="empty">ما لقينا منتج بهذا البحث.</div>`;
 }
-function add(id){cart.push(id);save();alert("تمت الإضافة للسلة ✓")}
+function add(id){cart.push(id);save();showToast("تمت الإضافة للسلة ✓")}
+function showToast(msg){
+ const toast=document.createElement("div");
+ toast.textContent=msg;
+ toast.style.cssText="position:fixed;bottom:25px;right:25px;background:#222;color:#fff;padding:12px 18px;border-radius:10px;z-index:9999;font-size:15px";
+ document.body.appendChild(toast);
+ setTimeout(()=>toast.remove(),2500);
+}
 function remove(i){cart.splice(i,1);save()}
 function save(){localStorage.setItem("zaatraCart",JSON.stringify(cart));renderCart();render()}
 function renderCart(){
