@@ -13,45 +13,446 @@ let cart=JSON.parse(localStorage.getItem("zaatraCart")||"[]");
 let currentCat="الكل";
 
 const grid=document.querySelector("#productsGrid");
-function render(){
- const q=document.querySelector("#search").value.trim();
- const list=products.filter(p=>(currentCat==="الكل"||p.cat===currentCat)&&(!q||p.name.includes(q)||p.desc.includes(q)));
- grid.innerHTML=list.length?list.map(p=>`<article class="product"><div class="pic">${p.icon}</div><div class="info"><h3>${p.name}</h3><div class="desc">${p.desc}</div><div class="meta"><span class="price">${p.price} ر.س</span><button class="add" onclick="add(${p.id},this)")">+ أضف للسلة</button></div class="add-message"></div>/div></article>`).join(""):`<div class="empty">ما لقينا منتج بهذا البحث.</div>`;
+
+
+function getQty(id){
+  return cart.filter(x=>x===id).length;
 }
-function add(id,btn){
-  cart.push(id);
+
+
+function render(){
+
+  const search=document.querySelector("#search");
+  const q=search ? search.value.trim() : "";
+
+  const list=products.filter(p=>
+    (currentCat==="الكل" || p.cat===currentCat) &&
+    (!q || p.name.includes(q) || p.desc.includes(q))
+  );
+
+  if(!list.length){
+    grid.innerHTML=`<div class="empty">ما لقينا منتج بهذا البحث.</div>`;
+    return;
+  }
+
+  grid.innerHTML=list.map(p=>`
+
+    <article class="product">
+
+      <div class="pic">${p.icon}</div>
+
+      <div class="info">
+
+        <h3>${p.name}</h3>
+
+        <div class="desc">${p.desc}</div>
+
+        <div class="meta">
+
+          <span class="price">${p.price} ر.س</span>
+
+          <div style="display:flex;align-items:center;gap:6px">
+
+            <button
+              type="button"
+              onclick="changeProductQty(${p.id},-1)"
+              style="width:30px;height:30px">
+              −
+            </button>
+
+            <span id="qty-${p.id}" style="min-width:20px;text-align:center">
+              1
+            </span>
+
+            <button
+              type="button"
+              onclick="changeProductQty(${p.id},1)"
+              style="width:30px;height:30px">
+              +
+            </button>
+
+          </div>
+
+          <button
+            class="add"
+            onclick="addToCart(${p.id})">
+            أضف للسلة
+          </button>
+
+        </div>
+
+        <div
+          id="msg-${p.id}"
+          style="
+            margin-top:8px;
+            min-height:20px;
+            color:#304d38;
+            font-size:13px;
+            font-weight:bold;
+          ">
+        </div>
+
+      </div>
+
+    </article>
+
+  `).join("");
+}
+
+
+function changeProductQty(id,change){
+
+  const element=document.querySelector("#qty-"+id);
+
+  if(!element) return;
+
+  let qty=parseInt(element.textContent)||1;
+
+  qty+=change;
+
+  if(qty<1) qty=1;
+
+  if(qty>99) qty=99;
+
+  element.textContent=qty;
+}
+
+
+function addToCart(id){
+
+  const element=document.querySelector("#qty-"+id);
+
+  let qty=parseInt(element?.textContent)||1;
+
+  if(qty<1) qty=1;
+
+  for(let i=0;i<qty;i++){
+    cart.push(id);
+  }
+
   save();
 
-  let msg=btn.nextElementSibling;
-  msg.textContent="تمت الإضافة للسلة ✓";
-  setTimeout(()=>msg.textContent="",2000);
+  const msg=document.querySelector("#msg-"+id);
+
+  if(msg){
+
+    msg.textContent=
+      qty===1
+      ? "تمت الإضافة للسلة ✓"
+      : `تمت إضافة ${qty} منتجات للسلة ✓`;
+
+    setTimeout(()=>{
+      msg.textContent="";
+    },2500);
+
+  }
 }
-function showToast(msg){
- const toast=document.createElement("div");
- toast.textContent=msg;
- toast.style.cssText="position:fixed;bottom:25px;right:25px;background:#222;color:#fff;padding:12px 18px;border-radius:10px;z-index:9999;font-size:15px";
- document.body.appendChild(toast);
- setTimeout(()=>toast.remove(),2500);
+
+
+function increaseCart(id){
+
+  cart.push(id);
+
+  save();
 }
-function remove(i){cart.splice(i,1);save()}
-function save(){localStorage.setItem("zaatraCart",JSON.stringify(cart));renderCart();render()}
+
+
+function decreaseCart(id){
+
+  const index=cart.indexOf(id);
+
+  if(index!==-1){
+    cart.splice(index,1);
+  }
+
+  save();
+}
+
+
+function removeProduct(id){
+
+  cart=cart.filter(x=>x!==id);
+
+  save();
+}
+
+
+function save(){
+
+  localStorage.setItem(
+    "zaatraCart",
+    JSON.stringify(cart)
+  );
+
+  renderCart();
+
+  render();
+}
+
+
 function renderCart(){
- const box=document.querySelector("#cartItems");
- const items=cart.map((id,i)=>({p:products.find(x=>x.id===id),i})).filter(x=>x.p);
- if(!items.length) box.innerHTML='<div class="empty">السلة فاضية حاليًا 🛒</div>';
- else box.innerHTML=items.map(x=>`<div class="item"><div><b>${x.p.name}</b><br><span>${x.p.price} ر.س</span></div><button onclick="remove(${x.i})">حذف</button></div>`).join("");
- const total=cart.reduce((s,id)=>s+(products.find(p=>p.id===id)?.price||0),0);
- document.querySelector("#total").textContent=total+" ر.س";
- document.querySelector("#cartCount").textContent=cart.length;
+
+  const box=document.querySelector("#cartItems");
+
+  if(!box) return;
+
+  const uniqueIds=[...new Set(cart)];
+
+  if(!uniqueIds.length){
+
+    box.innerHTML=
+      '<div class="empty">السلة فاضية حاليًا 🛒</div>';
+
+  }else{
+
+    box.innerHTML=uniqueIds.map(id=>{
+
+      const product=products.find(p=>p.id===id);
+
+      if(!product) return "";
+
+      const qty=getQty(id);
+
+      const subtotal=product.price*qty;
+
+      return `
+
+        <div class="item">
+
+          <div>
+
+            <b>${product.name}</b>
+
+            <br>
+
+            <span>
+              ${product.price} ر.س × ${qty}
+            </span>
+
+            <br>
+
+            <strong>
+              ${subtotal} ر.س
+            </strong>
+
+          </div>
+
+          <div
+            style="
+              display:flex;
+              align-items:center;
+              gap:5px;
+              margin-top:8px;
+            ">
+
+            <button
+              type="button"
+              onclick="decreaseCart(${id})">
+              −
+            </button>
+
+            <span
+              style="
+                min-width:25px;
+                text-align:center;
+              ">
+              ${qty}
+            </span>
+
+            <button
+              type="button"
+              onclick="increaseCart(${id})">
+              +
+            </button>
+
+            <button
+              type="button"
+              onclick="removeProduct(${id})">
+              حذف
+            </button>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+  }
+
+
+  const total=cart.reduce((sum,id)=>{
+
+    const product=products.find(p=>p.id===id);
+
+    return sum+(product ? product.price : 0);
+
+  },0);
+
+
+  const totalElement=document.querySelector("#total");
+
+  if(totalElement){
+    totalElement.textContent=total+" ر.س";
+  }
+
+
+  const countElement=document.querySelector("#cartCount");
+
+  if(countElement){
+    countElement.textContent=cart.length;
+  }
+
 }
-function openCart(){document.querySelector("#cart").classList.add("open");document.querySelector("#overlay").classList.add("open")}
-function closeCart(){document.querySelector("#cart").classList.remove("open");document.querySelector("#overlay").classList.remove("open")}
-document.querySelector("#cartBtn").onclick=openCart;
-document.querySelector("#closeCart").onclick=closeCart;
-document.querySelector("#overlay").onclick=closeCart;
-document.querySelector("#search").oninput=render;
-document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{document.querySelectorAll(".cat").forEach(x=>x.classList.remove("active"));b.classList.add("active");currentCat=b.dataset.cat;render()});
-document.querySelector("#checkout").onclick=()=>{if(!cart.length)return alert("أضف منتجًا للسلة أولًا.");document.querySelector("#modal").classList.add("open")};
-document.querySelector("#closeModal").onclick=()=>document.querySelector("#modal").classList.remove("open");
-document.querySelector("#demoPay").onclick=()=>{const n=document.querySelector("#name").value.trim()||"عميلنا";document.querySelector("#success").textContent=`تم إنشاء طلب تجريبي لـ ${n} ✅`;cart=[];save()};
-render();renderCart();
+
+
+function openCart(){
+
+  const cartElement=document.querySelector("#cart");
+  const overlay=document.querySelector("#overlay");
+
+  if(cartElement){
+    cartElement.classList.add("open");
+  }
+
+  if(overlay){
+    overlay.classList.add("open");
+  }
+
+}
+
+
+function closeCart(){
+
+  const cartElement=document.querySelector("#cart");
+  const overlay=document.querySelector("#overlay");
+
+  if(cartElement){
+    cartElement.classList.remove("open");
+  }
+
+  if(overlay){
+    overlay.classList.remove("open");
+  }
+
+}
+
+
+const cartButton=document.querySelector("#cartBtn");
+
+if(cartButton){
+  cartButton.onclick=openCart;
+}
+
+
+const closeCartButton=document.querySelector("#closeCart");
+
+if(closeCartButton){
+  closeCartButton.onclick=closeCart;
+}
+
+
+const overlay=document.querySelector("#overlay");
+
+if(overlay){
+  overlay.onclick=closeCart;
+}
+
+
+const search=document.querySelector("#search");
+
+if(search){
+  search.oninput=render;
+}
+
+
+document.querySelectorAll(".cat").forEach(button=>{
+
+  button.onclick=()=>{
+
+    document
+      .querySelectorAll(".cat")
+      .forEach(x=>x.classList.remove("active"));
+
+    button.classList.add("active");
+
+    currentCat=button.dataset.cat;
+
+    render();
+
+  };
+
+});
+
+
+const checkout=document.querySelector("#checkout");
+
+if(checkout){
+
+  checkout.onclick=()=>{
+
+    if(!cart.length){
+
+      alert("أضف منتجًا للسلة أولًا.");
+
+      return;
+    }
+
+    const modal=document.querySelector("#modal");
+
+    if(modal){
+      modal.classList.add("open");
+    }
+
+  };
+
+}
+
+
+const closeModal=document.querySelector("#closeModal");
+
+if(closeModal){
+
+  closeModal.onclick=()=>{
+
+    const modal=document.querySelector("#modal");
+
+    if(modal){
+      modal.classList.remove("open");
+    }
+
+  };
+
+}
+
+
+const demoPay=document.querySelector("#demoPay");
+
+if(demoPay){
+
+  demoPay.onclick=()=>{
+
+    const nameInput=document.querySelector("#name");
+
+    const name=nameInput?.value.trim()||"عميلنا";
+
+    const success=document.querySelector("#success");
+
+    if(success){
+      success.textContent=
+        `تم إنشاء طلب تجريبي لـ ${name} ✅`;
+    }
+
+    cart=[];
+
+    save();
+
+  };
+
+}
+
+
+render();
+
+renderCart();
